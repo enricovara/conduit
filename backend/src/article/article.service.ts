@@ -146,12 +146,20 @@ export class ArticleService {
   async create(userId: number, dto: CreateArticleDto) {
     const user = await this.userRepository.findOne({ id: userId }, { populate: ['followers', 'favorites', 'articles'] });
     const article = new Article(user, dto.title, dto.description, dto.body);
-    article.tagList.push(...dto.tagList);
+
+    // Ensure dto.tagList is an array before spreading
+    if (Array.isArray(dto.tagList)) {
+      article.tagList.push(...dto.tagList);
+    } else if (typeof dto.tagList === 'string') {
+      article.tagList.push(dto.tagList);
+    }
+
     user.articles.add(article);
     await this.em.flush();
 
     return { article: article.toJSON(user) };
   }
+
 
   async update(userId: number, slug: string, articleData: any): Promise<IArticleRO> {
     const user = await this.userRepository.findOne({ id: userId }, { populate: ['followers', 'favorites', 'articles'] });
