@@ -167,7 +167,7 @@ export class ArticleService {
       await processTags(dto.tagList);
     } else if (typeof dto.tagList === 'string') {
       // Split on commas and trim each tag
-      const tags = dto.tagList.split(',').map(tag => tag.trim());
+      const tags = (dto.tagList as string).split(',').map(tag => tag.trim());
       await processTags(tags);
     }
 
