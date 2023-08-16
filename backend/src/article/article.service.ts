@@ -8,6 +8,8 @@ import { Article } from './article.entity';
 import { IArticleRO, IArticlesRO, ICommentsRO } from './article.interface';
 import { Comment } from './comment.entity';
 import { CreateArticleDto, CreateCommentDto } from './dto';
+import { Tag } from '../tag/tag.entity';
+
 
 @Injectable()
 export class ArticleService {
@@ -16,6 +18,8 @@ export class ArticleService {
     private readonly em: EntityManager,
     @InjectRepository(Article)
     private readonly articleRepository: EntityRepository<Article>,
+    @InjectRepository(Tag)
+    private readonly tagRepository: EntityRepository<Tag>,
     @InjectRepository(Comment)
     private readonly commentRepository: EntityRepository<Comment>,
     @InjectRepository(User)
@@ -149,9 +153,21 @@ export class ArticleService {
 
     // Ensure dto.tagList is an array before spreading
     if (Array.isArray(dto.tagList)) {
-      article.tagList.push(...dto.tagList);
+      for (const tag of dto.tagList) {
+        let tagEntity = await this.tagRepository.findOne({ tag: tag });
+        if (!tagEntity) {
+          tagEntity = new Tag(tag);
+          await this.tagRepository.persistAndFlush(tagEntity);
+        }
+        article.tagList.push(tagEntity.tag);
+      }
     } else if (typeof dto.tagList === 'string') {
-      article.tagList.push(dto.tagList);
+      let tagEntity = await this.tagRepository.findOne({ tag: dto.tagList });
+      if (!tagEntity) {
+        tagEntity = new Tag(dto.tagList);
+        await this.tagRepository.persistAndFlush(tagEntity);
+      }
+      article.tagList.push(tagEntity.tag);
     }
 
     user.articles.add(article);

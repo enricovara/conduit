@@ -6,8 +6,8 @@ import { User } from '../user/user.entity';
 
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    const tags = this.getTags(em);
-    const authors = this.getAuthors(em);
+    const tags = await this.getTags(em);
+    const authors = await this.getAuthors(em);
     authors.john.followed.add(authors.bennie);
     authors.john.followed.add(authors.zolly);
     authors.bennie.followers.add(authors.john);
@@ -21,7 +21,7 @@ export class DatabaseSeeder extends Seeder {
         slug: 'how-to-do-something',
         title: 'How to do something',
         description: 'Lorem ipsum dolor sit amet',
-        tagList: [tags.coding.tag, tags.javascript.tag],
+        tagList: [tags.coding?.tag, tags.javascript?.tag].filter(Boolean),
         body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, diam id aliquam aliquam, nunc ipsum aliquet nunc, vitae aliq',
         favoritesCount: 3,
       }),
@@ -38,14 +38,21 @@ export class DatabaseSeeder extends Seeder {
     em.persist(articles);
   }
 
-  private getTags(em: EntityManager): Record<string, Tag> {
-    return {
-      coding: em.create(Tag, { tag: 'coding' }),
-      javascript: em.create(Tag, { tag: 'javascript' }),
-      angular: em.create(Tag, { tag: 'angular' }),
-      react: em.create(Tag, { tag: 'react' }),
-    };
+  private async getTags(em: EntityManager): Promise<Record<string, Tag>> {
+    const tags: Record<string, Tag> = {};
+
+    const tagNames = ['coding', 'javascript', 'angular', 'react'];
+    for (const tagName of tagNames) {
+      let tag = await em.findOne(Tag, { tag: tagName });
+      if (!tag) {
+          tag = em.create(Tag, { tag: tagName });
+      }
+      tags[tagName] = tag;
+    }
+    return tags;
   }
+
+
 
   private getAuthors(em: EntityManager): Record<string, User> {
     return {
