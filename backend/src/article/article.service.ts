@@ -151,9 +151,9 @@ export class ArticleService {
     const user = await this.userRepository.findOne({ id: userId }, { populate: ['followers', 'favorites', 'articles'] });
     const article = new Article(user, dto.title, dto.description, dto.body);
 
-    // Ensure dto.tagList is an array before spreading
-    if (Array.isArray(dto.tagList)) {
-      for (const tag of dto.tagList) {
+    // Ensure dto.tagList is an array before spreading or a string
+    const processTags = async (tags: string[]) => {
+      for (const tag of tags) {
         let tagEntity = await this.tagRepository.findOne({ tag: tag });
         if (!tagEntity) {
           tagEntity = new Tag(tag);
@@ -161,13 +161,14 @@ export class ArticleService {
         }
         article.tagList.push(tagEntity.tag);
       }
+    };
+
+    if (Array.isArray(dto.tagList)) {
+      await processTags(dto.tagList);
     } else if (typeof dto.tagList === 'string') {
-      let tagEntity = await this.tagRepository.findOne({ tag: dto.tagList });
-      if (!tagEntity) {
-        tagEntity = new Tag(dto.tagList);
-        await this.tagRepository.persistAndFlush(tagEntity);
-      }
-      article.tagList.push(tagEntity.tag);
+      // Split on commas and trim each tag
+      const tags = dto.tagList.split(',').map(tag => tag.trim());
+      await processTags(tags);
     }
 
     user.articles.add(article);
@@ -175,6 +176,7 @@ export class ArticleService {
 
     return { article: article.toJSON(user) };
   }
+
 
 
   async update(userId: number, slug: string, articleData: any): Promise<IArticleRO> {
